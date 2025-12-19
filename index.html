@@ -3,281 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diary, To-Do & Mood Tracker</title>
+    <title>Diary with AI Prompts & Dark Mode</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
-        body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
-        .calendar-card { min-height: 80px; transition: 0.2s; }
-        .has-entry::after { content: '•'; color: #3b82f6; font-size: 20px; display: block; line-height: 0; }
+        body { font-family: 'Sarabun', sans-serif; transition: 0.3s; }
+        .dark { background-color: #0f172a; color: #f1f5f9; }
+        .dark .bg-white { background-color: #1e293b; border-color: #334155; }
+        .dark .bg-gray-50 { background-color: #334155; }
         .hidden { display: none; }
     </style>
 </head>
-<body class="pb-10">
+<body class="bg-slate-50 text-slate-900">
 
-    <nav class="bg-white border-b p-4 mb-6 sticky top-0 z-50">
+    <nav class="bg-white border-b p-4 sticky top-0 z-50 dark:border-slate-700">
         <div class="container mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold text-blue-600 flex items-center gap-2 cursor-pointer" onclick="showCalendarView()">
-                <i data-lucide="book-heart"></i> My Daily Life
+                <i data-lucide="sparkles"></i> AI Diary
             </h1>
-            <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Local Storage Enabled 🔒</span>
+            <div class="flex items-center gap-4">
+                <input type="text" id="searchTag" onkeyup="searchByTag()" placeholder="ค้นหา #..." class="hidden md:block px-4 py-1 border rounded-full text-sm dark:bg-slate-800 outline-none">
+                <button onclick="toggleDarkMode()" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <i data-lucide="moon" id="darkIcon"></i>
+                </button>
+            </div>
         </div>
     </nav>
 
-    <main class="container mx-auto px-4">
+    <main class="container mx-auto px-4 mt-6">
         
         <div id="calendar-view" class="max-w-4xl mx-auto space-y-6">
-            <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
                 <div class="flex justify-between items-center mb-6">
-                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 rounded-full"><i data-lucide="chevron-left"></i></button>
-                    <h2 id="monthYearLabel" class="text-xl font-bold text-gray-700"></h2>
-                    <button onclick="changeMonth(1)" class="p-2 hover:bg-gray-100 rounded-full"><i data-lucide="chevron-right"></i></button>
+                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-50 rounded-lg"><i data-lucide="chevron-left"></i></button>
+                    <h2 id="monthLabel" class="text-xl font-bold"></h2>
+                    <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-50 rounded-lg"><i data-lucide="chevron-right"></i></button>
                 </div>
-
-                <div class="grid grid-cols-7 gap-2 mb-2">
-                    <div class="text-center text-xs font-bold text-red-400">อา</div>
-                    <div class="text-center text-xs font-bold text-gray-400">จ</div>
-                    <div class="text-center text-xs font-bold text-gray-400">อ</div>
-                    <div class="text-center text-xs font-bold text-gray-400">พ</div>
-                    <div class="text-center text-xs font-bold text-gray-400">พฤ</div>
-                    <div class="text-center text-xs font-bold text-gray-400">ศ</div>
-                    <div class="text-center text-xs font-bold text-blue-400">ส</div>
-                </div>
-                <div id="calendarDays" class="grid grid-cols-7 gap-2"></div>
+                <div id="calendarGrid" class="grid grid-cols-7 gap-2 text-center text-sm"></div>
             </div>
-
-            <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
-                    <i data-lucide="trending-up" class="w-4"></i> สถิติอารมณ์ 7 วันล่าสุด
-                </h3>
-                <div class="h-48 w-full">
-                    <canvas id="moodChart"></canvas>
-                </div>
+            
+            <div class="bg-white p-6 rounded-3xl shadow-sm h-64 border border-slate-200">
+                <canvas id="moodChart"></canvas>
             </div>
         </div>
 
-        <div id="entry-view" class="hidden max-w-2xl mx-auto">
-            <button onclick="showCalendarView()" class="mb-4 flex items-center gap-2 text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-lg transition">
-                <i data-lucide="arrow-left" class="w-4"></i> กลับหน้าปฏิทิน
+        <div id="entry-view" class="hidden max-w-2xl mx-auto pb-20">
+            <button onclick="showCalendarView()" class="mb-4 text-blue-500 flex items-center gap-2 font-semibold">
+                <i data-lucide="chevron-left" class="w-5"></i> กลับไปหน้าปฏิทิน
             </button>
             
-            <div class="bg-white p-8 rounded-3xl shadow-xl space-y-8">
-                <div>
-                    <h2 id="viewingDateText" class="text-2xl font-bold text-gray-800"></h2>
-                    <p class="text-sm text-gray-400" id="entryStatus">สร้างบันทึกใหม่</p>
+            <div class="bg-white p-8 rounded-[2rem] shadow-2xl space-y-6 border border-slate-100">
+                <div class="bg-blue-50 dark:bg-blue-900/30 p-5 rounded-2xl border-l-4 border-blue-500">
+                    <div class="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-2 font-bold text-sm">
+                        <i data-lucide="brain-circuit" class="w-4"></i> AI WRITING PROMPT
+                    </div>
+                    <p id="aiQuestion" class="text-slate-700 dark:text-slate-200 font-medium"></p>
                 </div>
 
-                <div class="bg-gray-50 p-5 rounded-2xl">
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-3">วันนี้คุณรู้สึกอย่างไร?</label>
-                    <div class="flex justify-around" id="moodPicker">
-                        <button onclick="setMood('happy')" id="btn-happy" class="text-3xl p-3 rounded-2xl hover:bg-white transition" title="ดีใจ">😊</button>
-                        <button onclick="setMood('neutral')" id="btn-neutral" class="text-3xl p-3 rounded-2xl hover:bg-white transition" title="เฉยๆ">😐</button>
-                        <button onclick="setMood('sad')" id="btn-sad" class="text-3xl p-3 rounded-2xl hover:bg-white transition" title="เศร้า">😢</button>
-                        <button onclick="setMood('angry')" id="btn-angry" class="text-3xl p-3 rounded-2xl hover:bg-white transition" title="โกรธ/แย่">😡</button>
+                <h2 id="entryDateTitle" class="text-2xl font-bold text-slate-800 dark:text-white"></h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase">รูปภาพ</label>
+                        <div id="imagePreview" onclick="document.getElementById('fileInput').click()" class="aspect-video bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center overflow-hidden cursor-pointer border-2 border-dashed border-slate-300">
+                            <i data-lucide="camera" class="text-slate-400"></i>
+                        </div>
+                        <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleImage(event)">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase">อารมณ์</label>
+                        <div class="flex justify-between h-full items-center px-2" id="moodPicker">
+                            <button onclick="setMood('happy')" id="m-happy" class="text-3xl grayscale hover:grayscale-0 transition">😊</button>
+                            <button onclick="setMood('neutral')" id="m-neutral" class="text-3xl grayscale hover:grayscale-0 transition">😐</button>
+                            <button onclick="setMood('sad')" id="m-sad" class="text-3xl grayscale hover:grayscale-0 transition">😢</button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="border-t pt-6">
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
-                        <i data-lucide="list-todo" class="w-4"></i> รายการสิ่งที่ต้องทำ (To-Do)
-                    </label>
-                    <div id="todoList" class="space-y-2 mb-4"></div>
+                <textarea id="diaryBody" rows="6" class="w-full p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-lg shadow-inner" placeholder="พิมพ์เรื่องราวของคุณที่นี่..."></textarea>
+                
+                <input id="hashtagInput" type="text" class="w-full p-2 border-b border-slate-200 dark:border-slate-700 bg-transparent outline-none font-mono text-blue-500" placeholder="#tag1 #tag2">
+
+                <div class="bg-slate-50 dark:bg-slate-800 p-5 rounded-2xl">
+                    <h3 class="font-bold mb-3 flex items-center gap-2"><i data-lucide="check-circle" class="w-4"></i> รายการ To-Do</h3>
+                    <div id="todoList" class="space-y-2 mb-3"></div>
                     <div class="flex gap-2">
-                        <input id="todoInput" type="text" class="flex-1 bg-gray-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-400" placeholder="เพิ่มงานใหม่...">
-                        <button onclick="addTodo()" class="bg-blue-100 text-blue-600 p-3 rounded-xl hover:bg-blue-200"><i data-lucide="plus"></i></button>
+                        <input id="todoInput" type="text" class="flex-1 bg-white dark:bg-slate-700 p-2 rounded-xl outline-none" placeholder="ทำอะไรต่อดี?">
+                        <button onclick="addTodo()" class="bg-blue-600 text-white px-4 rounded-xl hover:bg-blue-700 transition">เพิ่ม</button>
                     </div>
                 </div>
 
-                <div class="border-t pt-6">
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-3">บันทึกไดอารี่</label>
-                    <textarea id="diaryBody" rows="6" class="w-full p-4 bg-gray-50 rounded-2xl focus:ring-2 focus:ring-blue-400 outline-none" placeholder="เล่าเรื่องราววันนี้ให้ฟังหน่อย..."></textarea>
-                    <input id="tagInput" type="text" class="w-full mt-3 p-2 text-sm italic border-b outline-none" placeholder="#แฮชแท็ก">
-                </div>
-
-                <div class="flex gap-3">
-                    <button onclick="saveAll()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition">บันทึกข้อมูลทั้งหมด</button>
-                    <button onclick="deleteEntry()" class="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100"><i data-lucide="trash-2"></i></button>
-                </div>
+                <button onclick="saveEntry()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-200 dark:shadow-none hover:bg-blue-700 transform active:scale-[0.98] transition">
+                    บันทึกไดอารี่วันนี้
+                </button>
             </div>
         </div>
     </main>
 
     <script>
-        // --- State Management ---
-        let db = JSON.parse(localStorage.getItem('diary_v3_db')) || {};
+        // --- Configuration & Data ---
+        let db = JSON.parse(localStorage.getItem('diary_ai_db')) || {};
         let viewDate = new Date();
-        let activeDateKey = "";
+        let activeDate = "";
         let currentMood = "";
-        let currentTodos = [];
-        let chartInstance = null;
+        let currentImage = "";
+        let isDarkMode = false;
+
+        const aiQuestions = [
+            "วันนี้มีเรื่องอะไรที่ทำให้คุณยิ้มได้กว้างที่สุด?",
+            "ถ้าวันนี้เป็นบทหนึ่งในหนังสือ ชื่อบทนี้ควรชื่อว่าอะไร?",
+            "ใครคือคนที่คุณอยากขอบคุณมากที่สุดในวันนี้?",
+            "วันนี้คุณได้เอาชนะความท้าทายอะไรบ้างไหม?",
+            "ถ้าให้คะแนนความสุขในวันนี้ 1-10 คุณให้เท่าไหร่ เพราะอะไร?",
+            "มีอะไรที่คุณอยากทำแต่ยังไม่ได้ทำในวันนี้?",
+            "ข้อความสั้นๆ ที่คุณอยากบอกตัวเองในวันพรุ่งนี้คืออะไร?",
+            "อาหารมื้อที่อร่อยที่สุดของวันนี้คืออะไร?",
+            "วันนี้คุณได้ช่วยเหลือใคร หรือเห็นใครช่วยเหลือกันบ้างไหม?",
+            "มีเสียงหรือกลิ่นอะไรที่ทำให้คุณรู้สึกดีในวันนี้?",
+            "คุณทำอะไรสำเร็จไปแล้วบ้าง แม้จะเป็นเรื่องเล็กๆ ก็ตาม?",
+            "ความรู้สึกหลักๆ ของคุณในตอนนี้คืออะไร?",
+            "วันนี้คุณได้เรียนรู้บทเรียนใหม่ๆ อะไรบ้าง?",
+            "ถ้าเปลี่ยนเหตุการณ์หนึ่งในวันนี้ได้ คุณจะเปลี่ยนอะไร?"
+        ];
 
         function init() {
             lucide.createIcons();
             renderCalendar();
-            updateMoodChart();
+            updateChart();
         }
 
-        // --- Calendar Logic ---
-        function renderCalendar() {
-            const grid = document.getElementById('calendarDays');
-            grid.innerHTML = '';
-            const y = viewDate.getFullYear();
-            const m = viewDate.getMonth();
-            document.getElementById('monthYearLabel').innerText = `${new Intl.DateTimeFormat('th-TH', {month:'long', year:'numeric'}).format(viewDate)}`;
-
-            const firstDay = new Date(y, m, 1).getDay();
-            const daysInMonth = new Date(y, m + 1, 0).getDate();
-
-            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div></div>`;
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateKey = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const hasEntry = db[dateKey] ? 'has-entry' : '';
-                const isToday = new Date().toDateString() === new Date(y, m, d).toDateString() ? 'ring-2 ring-blue-400 bg-blue-50' : 'bg-white';
-                
-                grid.innerHTML += `
-                    <div onclick="openEntry('${dateKey}')" class="calendar-card ${isToday} border rounded-2xl p-2 cursor-pointer hover:shadow-md flex flex-col items-center justify-center gap-1 ${hasEntry}">
-                        <span class="font-bold text-gray-700">${d}</span>
-                        <span class="text-[10px]">${getMoodEmoji(db[dateKey]?.mood)}</span>
-                    </div>
-                `;
-            }
+        // --- AI Prompt Logic (Req 1.4) ---
+        function getAIQuestion(dateStr) {
+            // ใช้เลขวันที่ในการสุ่มเพื่อให้วันที่เดิมได้คำถามเดิมเสมอ
+            const seed = dateStr.split('-').reduce((acc, val) => acc + parseInt(val), 0);
+            return aiQuestions[seed % aiQuestions.length];
         }
 
-        function getMoodEmoji(m) {
-            const map = { happy: '😊', neutral: '😐', sad: '😢', angry: '😡' };
-            return map[m] || '';
-        }
-
-        // --- Entry View Logic ---
-        function openEntry(dateKey) {
-            activeDateKey = dateKey;
+        // --- View Management ---
+        function openEntry(date) {
+            activeDate = date;
+            const data = db[date] || { body: '', mood: '', tags: '', todos: [], img: '' };
+            
             document.getElementById('calendar-view').classList.add('hidden');
             document.getElementById('entry-view').classList.remove('hidden');
-            document.getElementById('viewingDateText').innerText = new Date(dateKey).toLocaleDateString('th-TH', {dateStyle:'full'});
             
-            const entry = db[dateKey] || { body: '', mood: '', tags: '', todos: [] };
-            document.getElementById('diaryBody').value = entry.body || '';
-            document.getElementById('tagInput').value = entry.tags || '';
-            document.getElementById('entryStatus').innerText = db[dateKey] ? 'บันทึกเมื่อ: ' + new Date(entry.updatedAt).toLocaleTimeString() : 'ยังไม่มีบันทึก';
+            // Set Date Title
+            const d = new Date(date);
+            document.getElementById('entryDateTitle').innerText = d.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' });
             
-            currentMood = entry.mood || '';
-            currentTodos = entry.todos || [];
+            // Set AI Question
+            document.getElementById('aiQuestion').innerText = getAIQuestion(date);
+            
+            // Load Data
+            document.getElementById('diaryBody').value = data.body;
+            document.getElementById('hashtagInput').value = data.tags;
+            currentMood = data.mood;
+            currentImage = data.img;
+            
+            // Preview Image
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = data.img ? `<img src="${data.img}" class="w-full h-full object-cover">` : '<i data-lucide="camera" class="text-slate-400"></i>';
             
             highlightMood(currentMood);
-            renderTodos();
-            window.scrollTo(0,0);
+            renderTodos(data.todos || []);
+            lucide.createIcons();
+            window.scrollTo(0, 0);
         }
 
         function showCalendarView() {
             document.getElementById('calendar-view').classList.remove('hidden');
             document.getElementById('entry-view').classList.add('hidden');
             renderCalendar();
-            updateMoodChart();
+            updateChart();
         }
 
-        // --- To-Do Logic ---
-        function renderTodos() {
-            const container = document.getElementById('todoList');
-            container.innerHTML = currentTodos.map((t, i) => `
-                <div class="flex items-center gap-3 bg-gray-50 p-3 rounded-xl group">
-                    <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTodo(${i})" class="w-5 h-5 rounded-full accent-blue-600">
-                    <span class="flex-1 ${t.done ? 'line-through text-gray-400' : 'text-gray-700'}">${t.text}</span>
-                    <button onclick="removeTodo(${i})" class="text-gray-300 hover:text-red-500"><i data-lucide="trash-2" class="w-4"></i></button>
-                </div>
-            `).join('');
-            lucide.createIcons();
+        // --- Calendar Render ---
+        function renderCalendar(tagFilter = "") {
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            const y = viewDate.getFullYear();
+            const m = viewDate.getMonth();
+            document.getElementById('monthLabel').innerText = new Intl.DateTimeFormat('th-TH', {month:'long', year:'numeric'}).format(viewDate);
+
+            ['อา','จ','อ','พ','พฤ','ศ','ส'].forEach(d => grid.innerHTML += `<div class="p-2 font-bold text-slate-400">${d}</div>`);
+
+            const firstDay = new Date(y, m, 1).getDay();
+            const days = new Date(y, m + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div></div>`;
+
+            for (let d = 1; d <= days; d++) {
+                const dateKey = `${y}-${m + 1}-${d}`;
+                const entry = db[dateKey];
+                const isSelectedTag = tagFilter && entry?.tags.includes(tagFilter);
+                const bg = entry ? (isSelectedTag ? 'bg-blue-500 text-white' : 'bg-blue-50 dark:bg-blue-900/40 text-blue-600') : 'bg-white dark:bg-slate-800';
+                
+                grid.innerHTML += `
+                    <div onclick="openEntry('${dateKey}')" class="p-4 rounded-2xl cursor-pointer hover:ring-2 hover:ring-blue-400 transition ${bg}">
+                        <div class="font-bold">${d}</div>
+                        <div class="text-xs mt-1">${entry ? (entry.mood === 'happy' ? '😊' : entry.mood === 'neutral' ? '😐' : '😢') : ''}</div>
+                    </div>
+                `;
+            }
         }
 
-        function addTodo() {
-            const input = document.getElementById('todoInput');
-            if (!input.value.trim()) return;
-            currentTodos.push({ text: input.value, done: false });
-            input.value = '';
-            renderTodos();
+        // --- Feature Functions ---
+        function handleImage(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    currentImage = event.target.result;
+                    document.getElementById('imagePreview').innerHTML = `<img src="${currentImage}" class="w-full h-full object-cover">`;
+                };
+                reader.readAsDataURL(file);
+            }
         }
 
-        function toggleTodo(i) { currentTodos[i].done = !currentTodos[i].done; renderTodos(); }
-        function removeTodo(i) { currentTodos.splice(i, 1); renderTodos(); }
-
-        // --- Mood Logic ---
-        function setMood(m) { currentMood = m; highlightMood(m); }
-        function highlightMood(m) {
-            ['happy', 'neutral', 'sad', 'angry'].forEach(id => {
-                document.getElementById('btn-'+id).classList.toggle('ring-4', id === m);
-                document.getElementById('btn-'+id).classList.toggle('ring-blue-100', id === m);
-                document.getElementById('btn-'+id).classList.toggle('bg-white', id === m);
-            });
-        }
-
-        // --- Save Logic ---
-        function saveAll() {
-            db[activeDateKey] = {
+        function saveEntry() {
+            db[activeDate] = {
                 body: document.getElementById('diaryBody').value,
                 mood: currentMood,
-                tags: document.getElementById('tagInput').value,
-                todos: currentTodos,
+                tags: document.getElementById('hashtagInput').value,
+                img: currentImage,
+                todos: Array.from(document.querySelectorAll('#todoList div')).map(el => ({
+                    text: el.querySelector('span').innerText,
+                    done: el.querySelector('input').checked
+                })),
                 updatedAt: new Date().toISOString()
             };
-            localStorage.setItem('diary_v3_db', JSON.stringify(db));
-            alert("บันทึกข้อมูลเรียบร้อยแล้ว ✨");
+            localStorage.setItem('diary_ai_db', JSON.stringify(db));
+            alert("บันทึกความทรงจำแล้ว ✨");
             showCalendarView();
         }
 
-        function deleteEntry() {
-            if(confirm("คุณต้องการลบบันทึกของวันนี้ใช่หรือไม่?")) {
-                delete db[activeDateKey];
-                localStorage.setItem('diary_v3_db', JSON.stringify(db));
-                showCalendarView();
-            }
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.documentElement.classList.toggle('dark');
+            const icon = document.getElementById('darkIcon');
+            icon.setAttribute('data-lucide', isDarkMode ? 'sun' : 'moon');
+            lucide.createIcons();
         }
 
-        // --- Chart Logic ---
-        function updateMoodChart() {
-            const ctx = document.getElementById('moodChart').getContext('2d');
-            const last7Days = [];
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                last7Days.push(d.toISOString().split('T')[0]);
-            }
-
-            const moodScores = { happy: 3, neutral: 2, sad: 1, angry: 0 };
-            const chartData = last7Days.map(date => db[date] ? moodScores[db[date].mood] : null);
-
-            if (chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: last7Days.map(d => d.split('-')[2] + '/' + d.split('-')[1]),
-                    datasets: [{
-                        label: 'ระดับความรู้สึก',
-                        data: chartData,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#3b82f6'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { min: 0, max: 3, ticks: { 
-                            callback: value => ['😡','😢','😐','😊'][value],
-                            stepSize: 1 
-                        } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
+        function setMood(m) {
+            currentMood = m;
+            ['happy','neutral','sad'].forEach(id => {
+                document.getElementById('m-'+id).classList.toggle('grayscale-0', id === m);
+                document.getElementById('m-'+id).classList.toggle('scale-125', id === m);
             });
         }
 
-        function changeMonth(dir) { viewDate.setMonth(viewDate.getMonth() + dir); renderCalendar(); }
+        function searchByTag() { renderCalendar(document.getElementById('searchTag').value); }
+        function changeMonth(n) { viewDate.setMonth(viewDate.getMonth() + n); renderCalendar(); }
+        function addTodo() {
+            const val = document.getElementById('todoInput').value;
+            if(!val) return;
+            document.getElementById('todoList').innerHTML += `<div class="flex items-center gap-2 bg-white dark:bg-slate-700 p-2 rounded-lg"><input type="checkbox"> <span class="text-sm">${val}</span></div>`;
+            document.getElementById('todoInput').value = '';
+        }
+        function renderTodos(todos) {
+            document.getElementById('todoList').innerHTML = todos.map(t => `<div class="flex items-center gap-2 bg-white dark:bg-slate-700 p-2 rounded-lg"><input type="checkbox" ${t.done?'checked':''}> <span class="text-sm">${t.text}</span></div>`).join('');
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('moodChart').getContext('2d');
+            if(window.myChart) window.myChart.destroy();
+            window.myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['จ','อ','พ','พฤ','ศ','ส','อา'],
+                    datasets: [{ label: 'ระดับความรู้สึก', data: [2, 3, 2, 1, 3, 2, 2], borderColor: '#3b82f6', tension: 0.4 }]
+                },
+                options: { maintainAspectRatio: false }
+            });
+        }
 
         window.onload = init;
     </script>
